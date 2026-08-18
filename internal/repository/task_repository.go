@@ -2,12 +2,18 @@ package repository
 
 import (
 	"context"
+	"errors"
 
 	"github.com/az/task-api/internal/domain"
 )
 
+var ErrTaskNotFound = errors.New("task not found")
+
 type TaskRepository interface {
 	Create(ctx context.Context, task *domain.Task) error
+	GetByID(ctx context.Context, id string) (*domain.Task, error)
+	List(ctx context.Context) ([]*domain.Task, error)
 	Update(ctx context.Context, task *domain.Task) error
-	GetByID(ctx context.Context, ID string)
+	Delete(ctx context.Context, id string) error
+	FindOverdue(ctx context.Context) ([]*domain.Task, error) // for the scheduler in Step 12
 }

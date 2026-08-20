@@ -2,12 +2,12 @@ package repository
 
 import (
 	"context"
-	"errors"
 
+	"github.com/az/task-api/internal/apperror"
 	"github.com/az/task-api/internal/domain"
 )
 
-var ErrTaskNotFound = errors.New("task not found")
+var ErrTaskNotFound = apperror.NotFound("task not found")
 
 type TaskRepository interface {
 	Create(ctx context.Context, task *domain.Task) error

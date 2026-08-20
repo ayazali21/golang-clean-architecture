@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/az/task-api/internal/apperror"
 	"github.com/az/task-api/internal/usecase"
 	"github.com/go-chi/chi/v5"
 )
@@ -17,6 +18,17 @@ func NewTaskHandler(u *usecase.TaskUsecase) *TaskHandler {
 	return &TaskHandler{usecase: u}
 }
 
+// Create godoc
+// @Summary      Create a task
+// @Description  Creates a new task with the given title, description, and due date
+// @Tags         tasks
+// @Accept       json
+// @Produce      json
+// @Param        request body createTaskRequest true "Task payload"
+// @Success      201 {object} taskResponse
+// @Failure      400 {object} errorResponseBody
+// @Failure      500 {object} errorResponseBody
+// @Router       /tasks [post]
 func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req createTaskRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -25,7 +37,7 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := validateStruct(req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest) // proper JSON shape comes in Step 10
+		writeError(w, apperror.Validation(err.Error()))
 		return
 	}
 
@@ -38,22 +50,39 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, toTaskResponse(task))
 }
 
+// Get godoc
+// @Summary      Get a task by ID
+// @Tags         tasks
+// @Produce      json
+// @Param        id path string true "Task ID"
+// @Success      200 {object} taskResponse
+// @Failure      404 {object} errorResponseBody
+// @Failure      500 {object} errorResponseBody
+// @Router       /tasks/{id} [get]
 func (h *TaskHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	task, err := h.usecase.GetTask(r.Context(), id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError) // temporary — fixed in Step 10
+		writeError(w, err)
 		return
 	}
 
 	writeJSON(w, http.StatusOK, toTaskResponse(task))
 }
 
+// List godoc
+// @Summary      List all tasks
+// @Tags         tasks
+// @Produce      json
+// @Success      200 {array} taskResponse
+// @Failure      404 {object} errorResponseBody
+// @Failure      500 {object} errorResponseBody
+// @Router       /tasks [get]
 func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
 	tasks, err := h.usecase.ListTasks(r.Context())
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, err)
 		return
 	}
 
@@ -64,46 +93,77 @@ func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
+// Update godoc
+// @Summary      Update a task
+// @Description  Updates an existing task's title, description, and due date
+// @Tags         tasks
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Task ID"
+// @Param        request body updateTaskRequest true "Updated task payload"
+// @Success      200 {object} taskResponse
+// @Failure      400 {object} errorResponseBody
+// @Failure      404 {object} errorResponseBody
+// @Failure      500 {object} errorResponseBody
+// @Router       /tasks/{id} [put]
 func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	var req updateTaskRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
+		writeError(w, apperror.Validation("invalid request body"))
 		return
 	}
 
 	if err := validateStruct(req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest) // proper JSON shape comes in Step 10
+		writeError(w, apperror.Validation(err.Error()))
 		return
 	}
 
 	task, err := h.usecase.UpdateTask(r.Context(), id, req.Title, req.Description, req.DueDate)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, err)
 		return
 	}
 
 	writeJSON(w, http.StatusOK, toTaskResponse(task))
 }
 
+// Delete godoc
+// @Summary      Delete a task
+// @Tags         tasks
+// @Param        id path string true "Task ID"
+// @Success      204 "No Content"
+// @Failure      404 {object} errorResponseBody
+// @Failure      500 {object} errorResponseBody
+// @Router       /tasks/{id} [delete]
 func (h *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	if err := h.usecase.DeleteTask(r.Context(), id); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, err)
 		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// Complete godoc
+// @Summary      Mark a task as completed
+// @Tags         tasks
+// @Produce      json
+// @Param        id path string true "Task ID"
+// @Success      200 {object} taskResponse
+// @Failure      404 {object} errorResponseBody
+// @Failure      409 {object} errorResponseBody
+// @Failure      500 {object} errorResponseBody
+// @Router       /tasks/{id}/complete [post]
 func (h *TaskHandler) Complete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	task, err := h.usecase.CompleteTask(r.Context(), id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, err)
 		return
 	}
 

@@ -5,6 +5,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/az/task-api/internal/apperror"
 	"github.com/az/task-api/internal/domain"
 	"github.com/az/task-api/internal/repository"
 )
@@ -60,6 +61,9 @@ func (u *TaskUsecase) CompleteTask(ctx context.Context, id string) (*domain.Task
 		return nil, err
 	}
 
+	if task.Status == domain.StatusCompleted {
+		return nil, apperror.Conflict("task is already completed")
+	}
 	task.MarkCompleted() // domain rule lives on the entity, usecase just orchestrates
 
 	if err := u.repo.Update(ctx, task); err != nil {

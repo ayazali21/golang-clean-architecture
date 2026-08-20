@@ -9,3 +9,6 @@ migrate-down:
 
 migrate-create:
 	migrate create -ext sql -dir migrations -seq $(name)
+
+swagger:m 
+	swag init -g cmd/api/main.go -o docs

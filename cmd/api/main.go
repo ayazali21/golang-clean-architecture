@@ -1,3 +1,10 @@
+// cmd/api/main.go
+
+// @title           Task API
+// @version         1.0
+// @description     A small task management REST API built for learning Clean Architecture in Go.
+// @host            localhost:8080
+// @BasePath        /api/v1
 package main
 
 import (

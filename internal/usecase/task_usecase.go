@@ -71,3 +71,25 @@ func (u *TaskUsecase) CompleteTask(ctx context.Context, id string) (*domain.Task
 	}
 	return task, nil
 }
+
+func (u *TaskUsecase) ProcessOverdueTasks(ctx context.Context) (int, error) {
+
+	task, err := u.repo.FindOverdue(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	count := 0
+
+	for _, t := range task {
+		t.Status = domain.StatusOverdue
+		t.UpdatedAt = time.Now().UTC()
+		if err := u.repo.Update(ctx, t); err != nil {
+			//log error
+			continue
+		}
+		count++
+
+	}
+	return count, nil
+}

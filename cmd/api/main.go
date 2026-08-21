@@ -8,14 +8,17 @@
 package main
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/az/task-api/internal/config"
 	"github.com/az/task-api/internal/handler"
 	"github.com/az/task-api/internal/infrastructure/database"
 	"github.com/az/task-api/internal/repository/postgres"
+	"github.com/az/task-api/internal/scheduler"
 	"github.com/az/task-api/internal/usecase"
 	"github.com/joho/godotenv"
 )
@@ -43,6 +46,12 @@ func main() {
 	taskHandler := handler.NewTaskHandler(taskUsecase)
 
 	router := handler.NewRouter(taskHandler)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	taskScheduler := scheduler.NewTaskScheduler(taskUsecase, 1*time.Minute)
+	go taskScheduler.Run(ctx) // runs concurrently, never blocks ListenAndServe below
 
 	slog.Info("starting server", "port", cfg.HTTPPort)
 
